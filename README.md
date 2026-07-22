@@ -1,5 +1,3 @@
-# mansk
-
 <p align="center">
   <img src="assets/mansk-mascot.png" alt="mansk — manage skills" width="320">
 </p>
