@@ -18,7 +18,7 @@ fn local_update_sync_noop_and_prune() {
     fs::create_dir_all(manifest.parent().unwrap()).unwrap();
     fs::write(
         &manifest,
-        "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\npath = \"../../keep\"\n[[skills]]\npath = \"../../remove\"\n",
+        "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\npath = \"../../keep\"\n[[skills]]\npath = \"../../remove\"\n",
     )
     .unwrap();
     let command = || {
@@ -41,7 +41,7 @@ fn local_update_sync_noop_and_prune() {
 
     fs::write(
         &manifest,
-        "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\npath = \"../../keep\"\n",
+        "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\npath = \"../../keep\"\n",
     )
     .unwrap();
     command()
@@ -77,7 +77,7 @@ fn update_installs_a_local_skill_and_records_its_source() {
     fs::create_dir_all(manifest.parent().unwrap()).unwrap();
     fs::write(
         &manifest,
-        "schema = 1\ndefault-targets = [\"claude\", \"agents\"]\n[[skills]]\npath = \"../skills/review\"\n",
+        "schema = 1\ndefault-targets = [\"claude\", \"agents\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\npath = \"../skills/review\"\n",
     )
     .unwrap();
 
@@ -122,7 +122,7 @@ fn duplicate_effective_targets_install_each_skill_once() {
     let manifest = temp.path().join("skills.toml");
     fs::write(
         &manifest,
-        "schema = 1\ndefault-targets = [\"claude\", \"claude\"]\n[[skills]]\npath = \"review\"\n",
+        "schema = 1\ndefault-targets = [\"claude\", \"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\npath = \"review\"\n",
     )
     .unwrap();
 
@@ -149,7 +149,7 @@ fn sync_refreshes_local_content_and_reports_an_existing_link_as_noop() {
     let manifest = temp.path().join("skills.toml");
     fs::write(
         &manifest,
-        "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\npath = \"review\"\n",
+        "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\npath = \"review\"\n",
     )
     .unwrap();
 
@@ -201,6 +201,9 @@ fn per_skill_targets_override_manifest_defaults() {
         &manifest,
         r#"schema = 1
 default-targets = ["claude"]
+[targets]
+claude = ".claude/skills"
+agents = ".agents/skills"
 [[skills]]
 path = "defaulted"
 [[skills]]
@@ -235,7 +238,7 @@ fn sync_requires_a_lock_covering_every_local_source_before_creating_targets() {
     let manifest = temp.path().join("skills.toml");
     fs::write(
         &manifest,
-        "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\npath = \"review\"\n",
+        "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\npath = \"review\"\n",
     )
     .unwrap();
 
@@ -276,7 +279,7 @@ fn missing_skill_document_fails_before_any_target_directory_is_mutated() {
     let manifest = temp.path().join("skills.toml");
     fs::write(
         &manifest,
-        "schema = 1\ndefault-targets = [\"claude\", \"agents\"]\n[[skills]]\npath = \"broken\"\n",
+        "schema = 1\ndefault-targets = [\"claude\", \"agents\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\npath = \"broken\"\n",
     )
     .unwrap();
 
@@ -306,7 +309,7 @@ fn declining_an_update_does_not_refresh_content_visible_through_installed_links(
     let manifest = temp.path().join("skills.toml");
     fs::write(
         &manifest,
-        "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\npath = \"review\"\n",
+        "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\npath = \"review\"\n",
     )
     .unwrap();
 
@@ -358,7 +361,7 @@ fn cache_staging_does_not_clobber_a_skill_with_the_old_temporary_name() {
     let manifest = temp.path().join("skills.toml");
     fs::write(
         &manifest,
-        "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\npath = \".review.tmp\"\n[[skills]]\npath = \"review\"\n",
+        "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\npath = \".review.tmp\"\n[[skills]]\npath = \"review\"\n",
     )
     .unwrap();
 
@@ -393,7 +396,7 @@ fn dry_runs_print_plans_without_writing_lock_or_target_entries() {
     let manifest = temp.path().join("skills.toml");
     fs::write(
         &manifest,
-        "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\npath = \"one\"\n",
+        "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\npath = \"one\"\n",
     )
     .unwrap();
     let command = || {
@@ -422,7 +425,7 @@ fn dry_runs_print_plans_without_writing_lock_or_target_entries() {
 
     fs::write(
         &manifest,
-        "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\npath = \"one\"\n[[skills]]\npath = \"two\"\n",
+        "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\npath = \"one\"\n[[skills]]\npath = \"two\"\n",
     )
     .unwrap();
     command()

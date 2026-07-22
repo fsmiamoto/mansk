@@ -69,20 +69,39 @@ fn run() -> Result<(), String> {
         )
         .map(String::as_str)
         .collect();
-    targets::validate_names(target_names.iter().copied())?;
+    targets::validate_names(target_names.iter().copied(), &manifest.targets)?;
 
-    if manifest.skills.is_empty()
+    let has_no_work = manifest.skills.is_empty()
         && manifest.collections.is_empty()
-        && !lock::path_for_manifest(&manifest_path).exists()
-    {
+        && !lock::path_for_manifest(&manifest_path).exists();
+    if has_no_work && manifest.targets.is_empty() {
         return Ok(());
     }
 
-    let home = std::env::var_os("HOME")
-        .map(PathBuf::from)
-        .ok_or_else(|| "cannot resolve targets: HOME is not set".to_owned())?;
-    let target_paths = target_paths(&home)?;
+    let home = std::env::var_os("HOME").map(PathBuf::from);
     let cache_root = resolve::cache_home_from_env()?;
+    let target_paths = targets::resolve(&manifest.targets, home.as_deref(), &cache_root)?;
+    if has_no_work {
+        let actions = make_plan(&[], &target_paths, &cache_root)?;
+        print_actions(&actions);
+        match cli.command {
+            Command::Sync { dry_run } => {
+                if !dry_run {
+                    apply::apply(&actions)?;
+                }
+            }
+            Command::Update { dry_run, yes } => {
+                if !dry_run && !actions.is_empty() {
+                    if !yes && !confirm_update()? {
+                        println!("Declined");
+                        return Ok(());
+                    }
+                    apply::apply(&actions)?;
+                }
+            }
+        }
+        return Ok(());
+    }
 
     match cli.command {
         Command::Sync { dry_run } => {
@@ -150,13 +169,6 @@ fn run() -> Result<(), String> {
         }
     }
     Ok(())
-}
-
-fn target_paths(home: &Path) -> Result<HashMap<String, PathBuf>, String> {
-    ["claude", "agents"]
-        .into_iter()
-        .map(|name| targets::resolve(name, home).map(|path| (name.to_owned(), path)))
-        .collect()
 }
 
 fn make_plan(

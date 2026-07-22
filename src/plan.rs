@@ -106,12 +106,12 @@ mod tests {
         ResolvedSkill {
             name: "review".into(),
             path: "/cache/local/review".into(),
-            targets: vec!["claude".into()],
+            targets: vec!["primary".into()],
         }
     }
 
     fn target_paths() -> HashMap<String, PathBuf> {
-        HashMap::from([("claude".into(), PathBuf::from("/home/.claude/skills"))])
+        HashMap::from([("primary".into(), PathBuf::from("/home/.primary/skills"))])
     }
 
     #[test]
@@ -120,7 +120,7 @@ mod tests {
             build(&[review_skill()], &target_paths(), &HashMap::new()).unwrap(),
             vec![Action::Link {
                 from: "/cache/local/review".into(),
-                to: "/home/.claude/skills/review".into(),
+                to: "/home/.primary/skills/review".into(),
             }]
         );
     }
@@ -128,13 +128,13 @@ mod tests {
     #[test]
     fn noop_rerun() {
         let observed = HashMap::from([(
-            PathBuf::from("/home/.claude/skills/review"),
+            PathBuf::from("/home/.primary/skills/review"),
             ObservedEntry::Symlink("/cache/local/review".into()),
         )]);
         assert_eq!(
             build(&[review_skill()], &target_paths(), &observed).unwrap(),
             vec![Action::Noop {
-                path: "/home/.claude/skills/review".into(),
+                path: "/home/.primary/skills/review".into(),
             }]
         );
     }
@@ -143,10 +143,10 @@ mod tests {
     fn duplicate_skill_names_are_rejected_before_planning_overlapping_targets() {
         let mut duplicate = review_skill();
         duplicate.path = "/cache/other/review".into();
-        duplicate.targets = vec!["claude".into(), "agents".into()];
+        duplicate.targets = vec!["primary".into(), "secondary".into()];
         let targets = HashMap::from([
-            ("claude".into(), PathBuf::from("/shared/skills")),
-            ("agents".into(), PathBuf::from("/shared/skills")),
+            ("primary".into(), PathBuf::from("/shared/skills")),
+            ("secondary".into(), PathBuf::from("/shared/skills")),
         ]);
 
         let error = build(&[review_skill(), duplicate], &targets, &HashMap::new()).unwrap_err();
@@ -158,11 +158,11 @@ mod tests {
     fn stale_unmanaged_entries_are_ignored() {
         let observed = HashMap::from([
             (
-                PathBuf::from("/home/.claude/skills/real-directory"),
+                PathBuf::from("/home/.primary/skills/real-directory"),
                 ObservedEntry::Unmanaged,
             ),
             (
-                PathBuf::from("/home/.claude/skills/external-link"),
+                PathBuf::from("/home/.primary/skills/external-link"),
                 ObservedEntry::Unmanaged,
             ),
         ]);
@@ -172,7 +172,7 @@ mod tests {
 
     #[test]
     fn unmanaged_collision_is_rejected_with_manual_removal_instructions() {
-        let path = PathBuf::from("/home/.claude/skills/review");
+        let path = PathBuf::from("/home/.primary/skills/review");
         let observed = HashMap::from([(path.clone(), ObservedEntry::Unmanaged)]);
 
         let error = build(&[review_skill()], &target_paths(), &observed).unwrap_err();
@@ -183,7 +183,7 @@ mod tests {
 
     #[test]
     fn changed_owned_link_is_replaced() {
-        let path = PathBuf::from("/home/.claude/skills/review");
+        let path = PathBuf::from("/home/.primary/skills/review");
         let observed = HashMap::from([(
             path.clone(),
             ObservedEntry::Symlink("/cache/old/review".into()),
@@ -203,7 +203,7 @@ mod tests {
 
     #[test]
     fn manifest_removal_prunes_an_owned_link() {
-        let path = PathBuf::from("/home/.claude/skills/review");
+        let path = PathBuf::from("/home/.primary/skills/review");
         let observed = HashMap::from([(
             path.clone(),
             ObservedEntry::Symlink("/cache/local/review".into()),

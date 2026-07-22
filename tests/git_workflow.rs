@@ -59,7 +59,7 @@ fn update_resolves_a_branch_records_the_commit_and_installs_the_skill() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\n"
         ),
     )
     .unwrap();
@@ -92,7 +92,7 @@ fn moved_branch_is_frozen_until_update() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\n"
         ),
     )
     .unwrap();
@@ -139,7 +139,7 @@ fn cache_rebuild_uses_locked_commit() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\n"
         ),
     )
     .unwrap();
@@ -187,7 +187,7 @@ fn skills_at_the_same_commit_share_one_repository_checkout() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/write\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/write\"\n"
         ),
     )
     .unwrap();
@@ -219,7 +219,7 @@ fn selectors_at_different_commits_fail_before_target_mutation() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\nsource = {source:?}\nselector = \"old\"\npath = \"skills/review\"\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\ntargets = [\"agents\"]\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\nsource = {source:?}\nselector = \"old\"\npath = \"skills/review\"\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\ntargets = [\"agents\"]\n"
         ),
     )
     .unwrap();
@@ -248,7 +248,7 @@ fn escaping_repository_path_fails_before_target_mutation() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"../outside\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"../outside\"\n"
         ),
     )
     .unwrap();
@@ -277,7 +277,7 @@ fn missing_skill_document_in_git_fails_before_target_mutation() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\n"
         ),
     )
     .unwrap();
@@ -314,7 +314,7 @@ fn skill_document_symlink_outside_repository_fails_before_target_mutation() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\n"
         ),
     )
     .unwrap();
@@ -338,7 +338,7 @@ fn moved_commit_dry_run_preserves_lock_and_installed_content() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\n"
         ),
     )
     .unwrap();
@@ -385,7 +385,7 @@ fn git_command_failure_is_reported_before_target_mutation() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\n"
         ),
     )
     .unwrap();
@@ -409,7 +409,7 @@ fn sync_rejects_a_non_commit_git_lock_value() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\n"
         ),
     )
     .unwrap();
@@ -441,7 +441,7 @@ fn missing_repository_path_fails_before_target_mutation() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/missing\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/missing\"\n"
         ),
     )
     .unwrap();

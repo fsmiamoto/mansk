@@ -1,4 +1,4 @@
-use std::{fs, path::Path};
+use std::{collections::BTreeMap, fs, path::Path};
 
 use serde::Deserialize;
 
@@ -8,6 +8,8 @@ pub struct Manifest {
     pub schema: u32,
     #[serde(default)]
     pub default_targets: Vec<String>,
+    #[serde(default)]
+    pub targets: BTreeMap<String, String>,
     #[serde(default)]
     pub skills: Vec<Skill>,
     #[serde(default)]

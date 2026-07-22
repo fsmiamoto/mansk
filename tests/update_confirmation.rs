@@ -40,7 +40,7 @@ fn command(home: &Path, cache: &Path, manifest: &Path) -> Command {
 }
 
 fn remove_collection_manifest(manifest: &Path) {
-    fs::write(manifest, "schema = 1\ndefault-targets = [\"claude\"]\n").unwrap();
+    fs::write(manifest, "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n").unwrap();
 }
 
 #[cfg(unix)]
@@ -54,7 +54,7 @@ fn removing_a_collection_is_summarized_before_confirmation_and_decline_preserves
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"skills\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"skills\"\n"
         ),
     )
     .unwrap();
@@ -100,7 +100,7 @@ fn empty_input_and_eof_decline_without_changing_lock_or_targets() {
         fs::write(
             &manifest,
             format!(
-                "schema = 1\ndefault-targets = [\"claude\"]\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"skills\"\n"
+                "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"skills\"\n"
             ),
         )
         .unwrap();
@@ -141,7 +141,7 @@ fn positive_confirmation_applies_the_printed_update() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"skills\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"skills\"\n"
         ),
     )
     .unwrap();
@@ -180,7 +180,7 @@ fn yes_flag_skips_the_prompt_but_keeps_the_change_summary() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"skills\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"skills\"\n"
         ),
     )
     .unwrap();

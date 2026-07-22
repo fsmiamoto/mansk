@@ -16,7 +16,7 @@ fn sync_replaces_an_owned_link_to_a_different_cached_path() {
     let manifest = temp.path().join("skills.toml");
     fs::write(
         &manifest,
-        "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\npath = \"review\"\n",
+        "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\npath = \"review\"\n",
     )
     .unwrap();
     let command = || {
@@ -58,7 +58,7 @@ fn missing_target_directories_are_created_only_when_applying_links() {
     let manifest = temp.path().join("skills.toml");
     fs::write(
         &manifest,
-        "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\npath = \"review\"\n",
+        "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\npath = \"review\"\n",
     )
     .unwrap();
     let command = || {
@@ -94,7 +94,7 @@ fn duplicate_names_on_overlapping_targets_fail_before_target_mutation() {
     let manifest = temp.path().join("skills.toml");
     fs::write(
         &manifest,
-        "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\npath = \"review\"\n",
+        "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\npath = \"review\"\n",
     )
     .unwrap();
     let command = || {
@@ -110,7 +110,7 @@ fn duplicate_names_on_overlapping_targets_fail_before_target_mutation() {
     let destination_before = fs::read_link(&installed).unwrap();
     fs::write(
         &manifest,
-        "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\npath = \"review\"\ntargets = [\"claude\"]\n[[skills]]\npath = \"review\"\ntargets = [\"claude\", \"agents\"]\n",
+        "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\npath = \"review\"\ntargets = [\"claude\"]\n[[skills]]\npath = \"review\"\ntargets = [\"claude\", \"agents\"]\n",
     )
     .unwrap();
 
@@ -137,7 +137,7 @@ fn unmanaged_collision_fails_sync_without_applying_any_planned_removals() {
     let manifest = temp.path().join("skills.toml");
     fs::write(
         &manifest,
-        "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\npath = \"wanted\"\n[[skills]]\npath = \"stale\"\n",
+        "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\npath = \"wanted\"\n[[skills]]\npath = \"stale\"\n",
     )
     .unwrap();
     let command = || {
@@ -154,7 +154,7 @@ fn unmanaged_collision_fails_sync_without_applying_any_planned_removals() {
     fs::create_dir(target.join("wanted")).unwrap();
     fs::write(
         &manifest,
-        "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\npath = \"wanted\"\n",
+        "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\npath = \"wanted\"\n",
     )
     .unwrap();
 
@@ -182,7 +182,7 @@ fn pruning_preserves_real_directories_and_links_outside_the_cache() {
     let manifest = temp.path().join("skills.toml");
     fs::write(
         &manifest,
-        "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\npath = \"owned\"\n",
+        "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\npath = \"owned\"\n",
     )
     .unwrap();
     let command = || {
@@ -202,7 +202,7 @@ fn pruning_preserves_real_directories_and_links_outside_the_cache() {
     let external_link = target.join("external");
     symlink(&external_source, &external_link).unwrap();
 
-    fs::write(&manifest, "schema = 1\ndefault-targets = [\"claude\"]\n").unwrap();
+    fs::write(&manifest, "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n").unwrap();
     command().arg("sync").assert().success();
 
     assert!(real.is_dir());
@@ -222,7 +222,7 @@ fn sync_prunes_the_final_removed_skill() {
     let manifest = temp.path().join("skills.toml");
     fs::write(
         &manifest,
-        "schema = 1\ndefault-targets = [\"claude\"]\n[[skills]]\npath = \"review\"\n",
+        "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\npath = \"review\"\n",
     )
     .unwrap();
     let command = || {
@@ -235,7 +235,7 @@ fn sync_prunes_the_final_removed_skill() {
     };
     command().args(["update", "--yes"]).assert().success();
 
-    fs::write(&manifest, "schema = 1\ndefault-targets = [\"claude\"]\n").unwrap();
+    fs::write(&manifest, "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n").unwrap();
     command()
         .arg("sync")
         .assert()
@@ -259,7 +259,7 @@ fn sync_prunes_only_the_removed_skills_owned_links_with_a_stale_lock() {
     let manifest = temp.path().join("skills.toml");
     fs::write(
         &manifest,
-        "schema = 1\ndefault-targets = [\"claude\", \"agents\"]\n[[skills]]\npath = \"keep\"\n[[skills]]\npath = \"remove\"\n",
+        "schema = 1\ndefault-targets = [\"claude\", \"agents\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\npath = \"keep\"\n[[skills]]\npath = \"remove\"\n",
     )
     .unwrap();
 
@@ -275,7 +275,7 @@ fn sync_prunes_only_the_removed_skills_owned_links_with_a_stale_lock() {
 
     fs::write(
         &manifest,
-        "schema = 1\ndefault-targets = [\"claude\", \"agents\"]\n[[skills]]\npath = \"keep\"\n",
+        "schema = 1\ndefault-targets = [\"claude\", \"agents\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[skills]]\npath = \"keep\"\n",
     )
     .unwrap();
     command()

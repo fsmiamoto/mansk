@@ -35,14 +35,16 @@ mansk sync     # install exactly what the lock records
 
 `update --yes` skips the confirmation; both commands take `--dry-run`.
 
-Two targets exist: `claude` installs to `~/.claude/skills`, `agents` to
-`~/.agents/skills`.
-
 ## Manifest
 
 ```toml
 schema = 1
-default-targets = ["claude", "agents"]
+default-targets = ["claude", "pi"]
+
+[targets]
+claude = ".claude/skills"
+pi = ".pi/agent/skills"
+custom = "/absolute/path"
 
 # A repository whose direct children containing SKILL.md are all installed.
 [[collections]]
@@ -62,10 +64,18 @@ targets = ["claude"]   # optional, replaces default-targets
 path = "../local-skill"
 ```
 
-The schema is strict: unknown fields are errors. Every skill directory must
-contain a `SKILL.md`; its directory name is the installed name, and duplicate
-names are rejected. Local skills take only `path` and optional `targets`; Git
-skills require `source`, `path`, and `selector`.
+The schema is strict: unknown fields are errors. `[targets]` maps arbitrary
+symbolic names to installation directories. Relative directories resolve
+against `$HOME`; absolute directories are used as written. Paths do not expand
+`~`, environment variables, or shell syntax. `default-targets` and each
+skill's optional `targets` list refer to names in this map, and an unknown name
+is an error. A skill's `targets` replaces the defaults; collections use the
+defaults.
+
+Every skill directory must contain a `SKILL.md`; its directory name is the
+installed name, and duplicate names are rejected. Local skills take only
+`path` and optional `targets`; Git skills require `source`, `path`, and
+`selector`.
 
 ## How it works
 
@@ -78,4 +88,6 @@ that cache.
 mansk only manages symlinks that point into its own cache. Those are created,
 relinked, and pruned as the manifest changes; anything else in a target
 directory is left alone, and a name collision with an unmanaged entry is an
-error, never an overwrite.
+error, never an overwrite. Every directory declared under `[targets]` is
+scanned, even if no current skill refers to it, so stale owned links are pruned
+while that declaration remains.

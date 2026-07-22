@@ -99,7 +99,7 @@ fn isolated_mixed_source_mvp_workflow_is_frozen_repeatable_and_safely_pruned() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"agents\"]\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"collection\"\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"explicit/review\"\n[[skills]]\npath = \"../../local-note\"\ntargets = [\"claude\"]\n"
+            "schema = 1\ndefault-targets = [\"agents\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"collection\"\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"explicit/review\"\n[[skills]]\npath = \"../../local-note\"\ntargets = [\"claude\"]\n"
         ),
     )
     .unwrap();
@@ -188,7 +188,7 @@ fn isolated_mixed_source_mvp_workflow_is_frozen_repeatable_and_safely_pruned() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"agents\"]\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"collection\"\n"
+            "schema = 1\ndefault-targets = [\"agents\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"collection\"\n"
         ),
     )
     .unwrap();

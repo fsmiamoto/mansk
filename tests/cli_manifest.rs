@@ -63,7 +63,7 @@ fn manifest_defaults_to_xdg_config_and_explicit_path_takes_precedence() {
         ));
 
     let explicit = temp.path().join("explicit.toml");
-    fs::write(&explicit, "schema = 1\ndefault-targets = [\"claude\"]\n").unwrap();
+    fs::write(&explicit, "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n").unwrap();
     Command::cargo_bin("mansk")
         .unwrap()
         .env("XDG_CONFIG_HOME", temp.path().join("config"))
@@ -97,6 +97,9 @@ fn settled_manifest_schema_accepts_git_local_and_collection_sources() {
             r#"
 schema = 1
 default-targets = ["claude", "agents"]
+[targets]
+claude = ".claude/skills"
+agents = ".agents/skills"
 
 [[collections]]
 source = {source:?}
@@ -129,7 +132,7 @@ path = "local-skill"
 fn unsupported_schema_version_has_an_actionable_diagnostic() {
     let temp = tempfile::tempdir().unwrap();
     let manifest = temp.path().join("skills.toml");
-    fs::write(&manifest, "schema = 2\ndefault-targets = [\"claude\"]\n").unwrap();
+    fs::write(&manifest, "schema = 2\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n").unwrap();
 
     Command::cargo_bin("mansk")
         .unwrap()
@@ -164,7 +167,7 @@ fn unknown_manifest_fields_are_rejected() {
 fn unknown_default_target_name_is_rejected() {
     let temp = tempfile::tempdir().unwrap();
     let manifest = temp.path().join("skills.toml");
-    fs::write(&manifest, "schema = 1\ndefault-targets = [\"cursor\"]\n").unwrap();
+    fs::write(&manifest, "schema = 1\ndefault-targets = [\"cursor\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n").unwrap();
 
     Command::cargo_bin("mansk")
         .unwrap()
@@ -173,7 +176,7 @@ fn unknown_default_target_name_is_rejected() {
         .assert()
         .failure()
         .stderr(predicate::str::contains("unknown target `cursor`"))
-        .stderr(predicate::str::contains("claude, agents"));
+        .stderr(predicate::str::contains("declare it under [targets]"));
 }
 
 #[test]

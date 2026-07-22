@@ -61,7 +61,7 @@ fn duplicate_collection_and_local_names_fail_before_target_mutation() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"skills\"\n[[skills]]\npath = \"local/review\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"skills\"\n[[skills]]\npath = \"local/review\"\n"
         ),
     )
     .unwrap();
@@ -89,7 +89,7 @@ fn duplicate_collection_and_explicit_git_names_fail_before_target_mutation() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"skills\"\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"skills\"\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\n"
         ),
     )
     .unwrap();
@@ -119,7 +119,7 @@ fn sync_rejects_a_lock_for_a_different_collection_root() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"first\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"first\"\n"
         ),
     )
     .unwrap();
@@ -130,7 +130,7 @@ fn sync_rejects_a_lock_for_a_different_collection_root() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"second\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"second\"\n"
         ),
     )
     .unwrap();
@@ -162,7 +162,7 @@ fn sync_rejects_a_lock_that_does_not_cover_the_collection() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[collections]]\nsource = {source:?}\nselector = \"main\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[collections]]\nsource = {source:?}\nselector = \"main\"\n"
         ),
     )
     .unwrap();
@@ -198,7 +198,7 @@ fn missing_collection_root_fails_before_target_mutation() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"missing\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"missing\"\n"
         ),
     )
     .unwrap();
@@ -232,7 +232,7 @@ fn collection_membership_is_frozen_until_update() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\", \"agents\"]\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"skills\"\n"
+            "schema = 1\ndefault-targets = [\"claude\", \"agents\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"skills\"\n"
         ),
     )
     .unwrap();
@@ -300,7 +300,7 @@ fn collection_discovery_is_shallow_under_configured_root() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"skills\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[collections]]\nsource = {source:?}\nselector = \"main\"\nroot = \"skills\"\n"
         ),
     )
     .unwrap();
@@ -337,7 +337,7 @@ fn collection_with_omitted_root_installs_root_members_and_locks_them() {
     fs::write(
         &manifest,
         format!(
-            "schema = 1\ndefault-targets = [\"claude\"]\n[[collections]]\nsource = {source:?}\nselector = \"main\"\n"
+            "schema = 1\ndefault-targets = [\"claude\"]\n[targets]\nclaude = \".claude/skills\"\nagents = \".agents/skills\"\n[[collections]]\nsource = {source:?}\nselector = \"main\"\n"
         ),
     )
     .unwrap();
