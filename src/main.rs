@@ -216,7 +216,7 @@ fn print_commit_changes(
 ) {
     let mut old_commits = std::collections::BTreeMap::new();
     if let Some(lock) = old_lock {
-        old_commits.extend(lock.git.iter().map(|(source, commit)| (source, commit)));
+        old_commits.extend(&lock.git);
         old_commits.extend(
             lock.collections
                 .iter()

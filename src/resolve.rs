@@ -104,15 +104,17 @@ pub fn local_skills(
 
 pub fn resolve_git_selectors(manifest: &Manifest) -> Result<BTreeMap<String, String>, String> {
     let mut requests = Vec::new();
-    for skill in manifest
-        .skills
-        .iter()
-        .filter(|skill| skill.source.is_some())
-    {
-        requests.push((
-            skill.source.as_ref().unwrap().as_str(),
-            skill.selector.as_ref().unwrap().as_str(),
-        ));
+    for (index, skill) in manifest.skills.iter().enumerate() {
+        let Some(source) = skill.source.as_deref() else {
+            continue;
+        };
+        let selector = skill.selector.as_deref().ok_or_else(|| {
+            format!(
+                "cannot resolve Git skill {} from `{source}` without a selector",
+                index + 1
+            )
+        })?;
+        requests.push((source, selector));
     }
     for collection in &manifest.collections {
         requests.push((collection.source.as_str(), collection.selector.as_str()));
@@ -274,15 +276,14 @@ fn git_skills_in(
     let git_skills: Vec<_> = manifest
         .skills
         .iter()
-        .filter(|skill| skill.source.is_some())
+        .filter_map(|skill| skill.source.as_ref().map(|source| (skill, source)))
         .collect();
     let mut requested = BTreeMap::new();
-    for skill in &git_skills {
-        let source = skill.source.as_ref().unwrap();
+    for (_, source) in &git_skills {
         let commit = commits
-            .get(source)
+            .get(*source)
             .ok_or_else(|| format!("skills.lock does not cover Git source `{source}`"))?;
-        requested.insert(source, commit);
+        requested.insert(*source, commit);
     }
     for collection in collections {
         if let Some(explicit_commit) = commits.get(&collection.source) {
@@ -318,8 +319,7 @@ fn git_skills_in(
 
     let mut names = HashSet::new();
     let mut resolved = Vec::new();
-    for skill in git_skills {
-        let source = skill.source.as_ref().unwrap();
+    for (skill, source) in git_skills {
         let (key, checkout) = checkouts
             .get(source.as_str())
             .ok_or_else(|| format!("skills.lock does not cover Git source `{source}`"))?;
@@ -364,7 +364,14 @@ fn git_skills_in(
             )
         })?;
         let root = collection_root(checkout, collection.root.as_deref(), &collection.source)?;
-        let relative_root = root.strip_prefix(checkout).unwrap();
+        let relative_root = root.strip_prefix(checkout).map_err(|_| {
+            format!(
+                "collection root {} for `{}` is outside Git checkout {}",
+                root.display(),
+                collection.source,
+                checkout.display()
+            )
+        })?;
         for member in &locked.members {
             let member_path = validate_collection_member(member)?;
             let validation_path = root.join(member_path);
@@ -415,16 +422,18 @@ fn resolve_selector(source: &str, selector: &str) -> Result<String, String> {
     } else {
         peeled_commits
     };
-    let unique: HashSet<_> = candidates.into_iter().collect();
-    match unique.len() {
-        1 => Ok(unique.into_iter().next().unwrap()),
-        0 => Err(format!(
+    let mut unique = candidates.into_iter().collect::<HashSet<_>>().into_iter();
+    let Some(commit) = unique.next() else {
+        return Err(format!(
             "Git selector `{selector}` was not found in repository `{source}`"
-        )),
-        _ => Err(format!(
+        ));
+    };
+    if unique.next().is_some() {
+        return Err(format!(
             "Git selector `{selector}` is ambiguous in repository `{source}`"
-        )),
+        ));
     }
+    Ok(commit)
 }
 
 fn is_full_object_id(value: &str) -> bool {

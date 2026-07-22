@@ -4,12 +4,22 @@
 
 Reproducible agent-skills manager. Skills are declared in a TOML manifest,
 pinned to exact Git commits in `skills.lock`, cached locally, and installed as
-symlinks.
+symlinks. mansk currently supports Unix systems; CI validates Linux.
 
 ## Install
 
 ```sh
 cargo install --path .
+```
+
+## Development
+
+Contributions must pass the repository's formatting, static-analysis, test,
+MSRV, and dependency-policy gates. See [CONTRIBUTING.md](CONTRIBUTING.md) for
+setup and run the same checks as CI with:
+
+```sh
+just check
 ```
 
 ## Usage
