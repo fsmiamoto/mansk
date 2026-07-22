@@ -1,5 +1,9 @@
 # mansk
 
+<p align="center">
+  <img src="assets/mansk-mascot.png" alt="mansk mascot organizing skill folders" width="360">
+</p>
+
 Reproducible agent-skills manager. Skills are declared in a TOML manifest,
 pinned to exact Git commits in `skills.lock`, cached locally, and installed as
 symlinks.
