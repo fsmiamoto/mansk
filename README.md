@@ -2,92 +2,104 @@
   <img src="assets/mansk-mascot.png" alt="mansk — manage skills" width="320">
 </p>
 
-Reproducible agent-skills manager. Skills are declared in a TOML manifest,
-pinned to exact Git commits in `skills.lock`, cached locally, and installed as
-symlinks. mansk currently supports Unix systems; CI validates Linux.
+Mansk is a small, reproducible manager for agent skills. Declare your local and
+Git-based skills once, then install them wherever your coding agents expect to
+find them.
+
+## Why?
+
+I wanted a sane way to manage the skills I use across different agents considering
+remote and local skills throughout my development machines.
+
+Mansk tries to tackle that by using a single TOML manifest that specifies that desired
+state and manages things from there.
 
 ## Install
 
 ```sh
+git clone https://github.com/fsmiamoto/mansk.git
+cd mansk
 cargo install --path .
 ```
 
-## Development
+## Get started
 
-Contributions must pass the repository's formatting, static-analysis, test,
-MSRV, and dependency-policy gates. See [CONTRIBUTING.md](CONTRIBUTING.md) for
-setup and run the same checks as CI with:
-
-```sh
-just check
-```
-
-## Usage
-
-The manifest lives at `~/.config/mansk/skills.toml` (or under
-`$XDG_CONFIG_HOME` if set); pass `--manifest PATH` before the command to use
-another file. `skills.lock` is written next to the manifest.
-
-```sh
-mansk update   # resolve selectors, rewrite the lock, install (asks first)
-mansk sync     # install exactly what the lock records
-```
-
-`update --yes` skips the confirmation; both commands take `--dry-run`.
-
-## Manifest
+Create `~/.config/mansk/skills.toml`:
 
 ```toml
 schema = 1
 default-targets = ["claude", "pi"]
 
 [targets]
+# Relative target paths are resolved from your home directory.
 claude = ".claude/skills"
 pi = ".pi/agent/skills"
-custom = "/absolute/path"
+custom = "/absolute/path/to/skills"
 
-# A repository whose direct children containing SKILL.md are all installed.
+# Install every direct child containing a SKILL.md file.
 [[collections]]
 source = "https://github.com/example/all-skills.git"
 selector = "main"
-root = "skills"        # optional, defaults to the repo root
+root = "skills" # optional; defaults to the repository root
 
-# A single skill from a Git repository.
+# Install one skill from a Git repository.
 [[skills]]
 source = "https://github.com/example/skills.git"
+selector = "v2" # branch, tag, or commit
 path = "skills/review"
-selector = "v2"        # branch, tag, or commit; pinned by update
-targets = ["claude"]   # optional, replaces default-targets
+targets = ["claude"] # optional; replaces default-targets
 
-# A local directory, relative to this manifest.
+# Install a local skill. Its path is relative to this manifest.
 [[skills]]
 path = "../local-skill"
 ```
 
-The schema is strict: unknown fields are errors. `[targets]` maps arbitrary
-symbolic names to installation directories. Relative directories resolve
-against `$HOME`; absolute directories are used as written. Paths do not expand
-`~`, environment variables, or shell syntax. `default-targets` and each
-skill's optional `targets` list refer to names in this map, and an unknown name
-is an error. A skill's `targets` replaces the defaults; collections use the
-defaults.
+Then resolve and install everything:
 
-Every skill directory must contain a `SKILL.md`; its directory name is the
-installed name, and duplicate names are rejected. Local skills take only
-`path` and optional `targets`; Git skills require `source`, `path`, and
-`selector`.
+```sh
+mansk update
+```
+
+Mansk shows the planned changes and asks before applying them. It writes a
+`skills.lock` beside the manifest; commit that file if you want to reproduce the
+same setup elsewhere.
+
+Every skill directory must contain a `SKILL.md`. Its directory name becomes the
+installed skill name, and duplicate names are rejected.
+
+## Commands
+
+```sh
+mansk update          # resolve selectors, update the lock, and install
+mansk sync            # install exactly what the current lock records
+mansk update --dry-run
+mansk sync --dry-run  # preview without changing target directories
+mansk update --yes    # apply without asking for confirmation
+```
+
+The default manifest follows `XDG_CONFIG_HOME` when set. To use another file,
+pass `--manifest PATH` before or after the command:
+
+```sh
+mansk --manifest ./skills.toml update
+```
 
 ## How it works
 
-`update` resolves branches and tags to exact commits and records them in
-`skills.lock`; `sync` never advances them, so commit the lock if you want
-reproducible installs. Content is cached under `~/.cache/mansk` — safe to
-delete, the next sync rebuilds it — and installed skills are symlinks into
-that cache.
+```text
+skills.toml                skills.lock
+(branches, tags, paths)       (exact commits)
+      │                           │
+      └────── mansk update ──────┘
+                                  │
+                           mansk sync
+                                  │
+                         ~/.cache/mansk
+                                  │
+                         target symlinks
+```
 
-mansk only manages symlinks that point into its own cache. Those are created,
-relinked, and pruned as the manifest changes; anything else in a target
-directory is left alone, and a name collision with an unmanaged entry is an
-error, never an overwrite. Every directory declared under `[targets]` is
-scanned, even if no current skill refers to it, so stale owned links are pruned
-while that declaration remains.
+`update` resolves branches and tags to exact commits and rewrites the lock.
+`sync` uses those recorded commits without advancing them. Downloaded content is
+kept under `~/.cache/mansk` (or `XDG_CACHE_HOME`) and can be safely deleted; the
+next sync rebuilds it.
