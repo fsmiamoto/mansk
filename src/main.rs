@@ -7,6 +7,8 @@ use std::{
 use clap::{Parser, Subcommand};
 
 mod apply;
+mod get;
+mod github;
 mod lock;
 mod manifest;
 mod output;
@@ -31,6 +33,8 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Command {
+    /// Discover, select, save, and install skills from GitHub
+    Get(get::Options),
     /// Install exactly the skills recorded in the lockfile
     Sync {
         /// Print the plan without changing target directories
@@ -61,6 +65,9 @@ fn run() -> Result<(), String> {
         Some(path) => path,
         None => targets::manifest_path_from_env()?,
     };
+    if let Command::Get(options) = &cli.command {
+        return get::run(&manifest_path, options, cli.verbose);
+    }
     let manifest = manifest::load(&manifest_path)?;
     let target_names: Vec<&str> = manifest
         .default_targets
@@ -87,6 +94,7 @@ fn run() -> Result<(), String> {
         let actions = make_plan(&[], &target_paths, &cache_root)?;
         let summary = output::Summary::new(&actions, &target_paths, &Default::default());
         let (command, dry_run, yes) = match cli.command {
+            Command::Get(_) => unreachable!("get is dispatched before loading the manifest"),
             Command::Sync { dry_run } => ("sync", dry_run, true),
             Command::Update { dry_run, yes } => ("update", dry_run, yes),
         };
@@ -106,6 +114,7 @@ fn run() -> Result<(), String> {
     }
 
     match cli.command {
+        Command::Get(_) => unreachable!("get is dispatched before loading the manifest"),
         Command::Sync { dry_run } => {
             let lockfile = lock::read(&manifest_path)?;
             lockfile.covers(&manifest)?;

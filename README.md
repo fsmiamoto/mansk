@@ -24,7 +24,14 @@ cargo install --path .
 
 ## Get started
 
-Create `~/.config/mansk/skills.toml`:
+Discover and install skills from a GitHub repo, folder, or `SKILL.md` link:
+
+```sh
+mansk get fsmiamoto/skills
+mansk get fsmiamoto/skills --all # Install all discovered skills
+```
+
+Alternatively, declare your skills manually. Create `~/.config/mansk/skills.toml`:
 
 ```toml
 schema = 1
@@ -70,6 +77,7 @@ installed skill name, and duplicate names are rejected.
 ## Commands
 
 ```sh
+mansk get owner/repo  # discover, select, save, and install GitHub skills
 mansk update          # resolve selectors, update the lock, and install
 mansk sync            # install exactly what the current lock records
 mansk update --dry-run

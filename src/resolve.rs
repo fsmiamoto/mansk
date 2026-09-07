@@ -127,21 +127,11 @@ pub fn changed_git_names(
     }
     let mut changed = HashSet::new();
     for skill in &manifest.skills {
-        if skill
-            .source
-            .as_deref()
-            .is_some_and(|source| changed_sources.contains(source))
-        {
-            let name = Path::new(&skill.path)
-                .file_name()
-                .and_then(|name| name.to_str())
-                .ok_or_else(|| {
-                    format!(
-                        "Git skill path `{}` has no valid directory name",
-                        skill.path
-                    )
-                })?;
-            changed.insert(name.to_owned());
+        let Some(source) = skill.source.as_deref() else {
+            continue;
+        };
+        if changed_sources.contains(source) {
+            changed.insert(git_skill_name(&skill.path, source)?);
         }
     }
     for collection in collections {
@@ -454,16 +444,7 @@ fn git_skills_in(
         let relative = validate_repository_path(&skill.path)?;
         let validation_path = checkout.join(relative);
         validate_git_skill_path(checkout, &validation_path, &skill.path)?;
-        let name = relative
-            .file_name()
-            .and_then(|name| name.to_str())
-            .ok_or_else(|| {
-                format!(
-                    "Git skill path `{}` has no valid directory name",
-                    skill.path
-                )
-            })?
-            .to_owned();
+        let name = git_skill_name(&skill.path, source)?;
         if !names.insert(name.clone()) {
             return Err(format!("duplicate skill name `{name}`"));
         }
@@ -671,6 +652,22 @@ fn validate_collection_member(member: &str) -> Result<&Path, String> {
         ));
     }
     Ok(path)
+}
+
+pub fn git_skill_name(path: &str, source: &str) -> Result<String, String> {
+    let relative = validate_repository_path(path)?;
+    let name = if relative.components().all(|part| part == Component::CurDir) {
+        source
+            .trim_end_matches('/')
+            .rsplit('/')
+            .next()
+            .map(|name| name.trim_end_matches(".git"))
+    } else {
+        relative.file_name().and_then(|name| name.to_str())
+    };
+    name.filter(|name| !name.is_empty() && *name != "." && *name != "..")
+        .map(str::to_owned)
+        .ok_or_else(|| format!("Git skill path `{path}` has no valid directory name"))
 }
 
 fn validate_repository_path(path: &str) -> Result<&Path, String> {

@@ -38,7 +38,11 @@ pub struct Collection {
 pub fn load(path: &Path) -> Result<Manifest, String> {
     let contents = fs::read_to_string(path)
         .map_err(|error| format!("failed to read manifest {}: {error}", path.display()))?;
-    let manifest: Manifest = toml::from_str(&contents)
+    parse(&contents, path)
+}
+
+pub fn parse(contents: &str, path: &Path) -> Result<Manifest, String> {
+    let manifest: Manifest = toml::from_str(contents)
         .map_err(|error| format!("failed to parse manifest {}: {error}", path.display()))?;
     if manifest.schema != 1 {
         return Err(format!(
