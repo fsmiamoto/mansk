@@ -32,6 +32,7 @@ fn collection_repo(root: &Path) -> (String, String) {
 
 fn command(home: &Path, cache: &Path, manifest: &Path) -> Command {
     let mut command = Command::cargo_bin("mansk").unwrap();
+    command.arg("--verbose");
     command
         .env("HOME", home)
         .env("XDG_CACHE_HOME", cache)
@@ -82,7 +83,7 @@ fn removing_a_collection_is_summarized_before_confirmation_and_decline_preserves
                 .and(predicate::str::contains("Remove"))
                 .and(predicate::str::contains("Declined")),
         )
-        .stderr(predicate::str::contains("Apply update? [y/N]"));
+        .stderr(predicate::str::contains("Apply changes? [y/N]"));
 
     assert_eq!(fs::read(&lock_path).unwrap(), lock_before);
     assert_eq!(fs::read_link(installed).unwrap(), target_before);
@@ -123,7 +124,7 @@ fn empty_input_and_eof_decline_without_changing_lock_or_targets() {
             .assert()
             .success()
             .stdout(predicate::str::contains("Declined"))
-            .stderr(predicate::str::contains("Apply update? [y/N]"));
+            .stderr(predicate::str::contains("Apply changes? [y/N]"));
 
         assert_eq!(fs::read(&lock_path).unwrap(), lock_before);
         assert_eq!(fs::read_link(&installed).unwrap(), target_before);
@@ -161,7 +162,7 @@ fn positive_confirmation_applies_the_printed_update() {
                 .and(predicate::str::contains("members removed: alpha"))
                 .and(predicate::str::contains("Remove")),
         )
-        .stderr(predicate::str::contains("Apply update? [y/N]"));
+        .stderr(predicate::str::contains("Apply changes? [y/N]"));
 
     assert!(!home.join(".claude/skills/alpha").exists());
     let lock: serde_json::Value =
@@ -198,5 +199,5 @@ fn yes_flag_skips_the_prompt_but_keeps_the_change_summary() {
             predicate::str::contains(format!("{source}: {} → (removed)", &commit[..7]))
                 .and(predicate::str::contains("members removed: alpha")),
         )
-        .stderr(predicate::str::contains("Apply update?").not());
+        .stderr(predicate::str::contains("Apply changes?").not());
 }

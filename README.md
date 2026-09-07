@@ -75,6 +75,20 @@ mansk sync            # install exactly what the current lock records
 mansk update --dry-run
 mansk sync --dry-run  # preview without changing target directories
 mansk update --yes    # apply without asking for confirmation
+mansk update --verbose # include revisions, collection changes, and full paths
+```
+
+Output groups changes by skill, with the affected agents on each row:
+
+```text
+mansk update
+
+  Update  review     claude, pi
+  Add     prototype  claude, pi
+  Remove  old-tool   pi
+
+3 skills changing · 18 unchanged
+Apply changes? [y/N]
 ```
 
 The default manifest follows `XDG_CONFIG_HOME` when set. To use another file,

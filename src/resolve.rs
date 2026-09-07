@@ -24,6 +24,134 @@ pub fn cache_home_from_env() -> Result<PathBuf, String> {
         .ok_or_else(|| "cannot locate the cache: neither XDG_CACHE_HOME nor HOME is set".into())
 }
 
+pub fn changed_local_names(
+    manifest: &Manifest,
+    manifest_path: &Path,
+    cache_root: &Path,
+) -> Result<HashSet<String>, String> {
+    let resolved = local_skills(manifest, manifest_path, cache_root, false)?;
+    let manifest_dir = manifest_path.parent().unwrap_or_else(|| Path::new("."));
+    let mut changed = HashSet::new();
+    for (skill, resolved) in manifest
+        .skills
+        .iter()
+        .filter(|skill| skill.source.is_none())
+        .zip(resolved)
+    {
+        // Copying follows a symlink at the source root, but inspects child
+        // entries without following symlinks.
+        if !same_local_entry(&manifest_dir.join(&skill.path), &resolved.path, true)? {
+            changed.insert(resolved.name);
+        }
+    }
+    Ok(changed)
+}
+
+fn same_local_entry(source: &Path, cached: &Path, source_root: bool) -> Result<bool, String> {
+    let source_metadata = if source_root {
+        fs::metadata(source)
+    } else {
+        fs::symlink_metadata(source)
+    }
+    .map_err(|error| format!("failed to inspect {}: {error}", source.display()))?;
+    let cached_metadata = match fs::symlink_metadata(cached) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(error) => return Err(format!("failed to inspect {}: {error}", cached.display())),
+    };
+    if source_metadata.file_type() != cached_metadata.file_type() {
+        return Ok(false);
+    }
+    if source_metadata.is_file() {
+        if source_metadata.len() != cached_metadata.len() {
+            return Ok(false);
+        }
+        let read = |path: &Path| {
+            fs::read(path).map_err(|error| format!("failed to read {}: {error}", path.display()))
+        };
+        return Ok(read(source)? == read(cached)?);
+    }
+    if source_metadata.is_symlink() {
+        let read = |path: &Path| {
+            fs::read_link(path)
+                .map_err(|error| format!("failed to read symlink {}: {error}", path.display()))
+        };
+        return Ok(read(source)? == read(cached)?);
+    }
+    if !source_metadata.is_dir() {
+        return Err(format!(
+            "unsupported entry in local skill: {}",
+            source.display()
+        ));
+    }
+    let names = |path: &Path| -> Result<HashSet<_>, String> {
+        fs::read_dir(path)
+            .map_err(|error| format!("failed to read {}: {error}", path.display()))?
+            .map(|entry| {
+                entry
+                    .map(|entry| entry.file_name())
+                    .map_err(|error| format!("failed to read {}: {error}", path.display()))
+            })
+            .collect()
+    };
+    let source_names = names(source)?;
+    if source_names != names(cached)? {
+        return Ok(false);
+    }
+    for name in source_names {
+        if !same_local_entry(&source.join(&name), &cached.join(&name), false)? {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+pub fn changed_git_names(
+    manifest: &Manifest,
+    commits: &BTreeMap<String, String>,
+    collections: &[LockedCollection],
+    cache_root: &Path,
+) -> Result<HashSet<String>, String> {
+    let mut changed_sources = HashSet::new();
+    for (source, commit) in commits.iter().chain(
+        collections
+            .iter()
+            .map(|collection| (&collection.source, &collection.commit)),
+    ) {
+        let checkout = cache_root.join("git").join(repository_key(source));
+        if !checkout.join(".git").is_dir()
+            || git_output(Some(&checkout), &["rev-parse", "HEAD"])? != *commit
+        {
+            changed_sources.insert(source.as_str());
+        }
+    }
+    let mut changed = HashSet::new();
+    for skill in &manifest.skills {
+        if skill
+            .source
+            .as_deref()
+            .is_some_and(|source| changed_sources.contains(source))
+        {
+            let name = Path::new(&skill.path)
+                .file_name()
+                .and_then(|name| name.to_str())
+                .ok_or_else(|| {
+                    format!(
+                        "Git skill path `{}` has no valid directory name",
+                        skill.path
+                    )
+                })?;
+            changed.insert(name.to_owned());
+        }
+    }
+    for collection in collections {
+        if changed_sources.contains(collection.source.as_str()) {
+            changed.extend(collection.members.iter().cloned());
+        }
+    }
+    Ok(changed)
+}
+
 pub fn local_skills(
     manifest: &Manifest,
     manifest_path: &Path,
@@ -646,4 +774,130 @@ fn copy_directory(source: &Path, destination: &Path) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn local_changes_compare_nested_content_and_membership_without_mutation() {
+        let temp = tempfile::tempdir().unwrap();
+        let source = temp.path().join("review");
+        let cache = temp.path().join("cache");
+        let manifest_path = temp.path().join("skills.toml");
+        let manifest: Manifest =
+            toml::from_str("schema = 1\n[[skills]]\npath = 'review'\n").unwrap();
+        fs::create_dir_all(source.join("nested")).unwrap();
+        fs::write(source.join("SKILL.md"), "review").unwrap();
+        fs::write(source.join("nested/example.txt"), "before").unwrap();
+        let expected = HashSet::from(["review".to_owned()]);
+        assert_eq!(
+            changed_local_names(&manifest, &manifest_path, &cache).unwrap(),
+            expected
+        );
+        assert!(!cache.exists());
+        local_skills(&manifest, &manifest_path, &cache, true).unwrap();
+        assert!(
+            changed_local_names(&manifest, &manifest_path, &cache)
+                .unwrap()
+                .is_empty()
+        );
+
+        // Equal-length changes still count, without refreshing the cache.
+        fs::write(source.join("nested/example.txt"), "after!").unwrap();
+        assert_eq!(
+            changed_local_names(&manifest, &manifest_path, &cache).unwrap(),
+            expected
+        );
+        assert_eq!(
+            fs::read_to_string(cache.join("local/review/nested/example.txt")).unwrap(),
+            "before"
+        );
+        local_skills(&manifest, &manifest_path, &cache, true).unwrap();
+        fs::write(source.join("nested/new.txt"), "new").unwrap();
+        assert_eq!(
+            changed_local_names(&manifest, &manifest_path, &cache).unwrap(),
+            expected
+        );
+        local_skills(&manifest, &manifest_path, &cache, true).unwrap();
+        fs::remove_file(source.join("nested/new.txt")).unwrap();
+        assert_eq!(
+            changed_local_names(&manifest, &manifest_path, &cache).unwrap(),
+            expected
+        );
+        local_skills(&manifest, &manifest_path, &cache, true).unwrap();
+        fs::remove_file(source.join("nested/example.txt")).unwrap();
+        fs::create_dir(source.join("nested/example.txt")).unwrap();
+        assert_eq!(
+            changed_local_names(&manifest, &manifest_path, &cache).unwrap(),
+            expected
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn local_comparison_checks_symlink_destinations_without_following_them() {
+        use std::os::unix::fs::symlink;
+        let temp = tempfile::tempdir().unwrap();
+        let source = temp.path().join("source");
+        let cache = temp.path().join("cache");
+        symlink("missing", &source).unwrap();
+        symlink("missing", &cache).unwrap();
+        assert!(same_local_entry(&source, &cache, false).unwrap());
+        fs::remove_file(&cache).unwrap();
+        symlink("different", &cache).unwrap();
+        assert!(!same_local_entry(&source, &cache, false).unwrap());
+    }
+
+    #[test]
+    fn git_changes_include_explicit_skills_and_collection_members_for_changed_revisions() {
+        let temp = tempfile::tempdir().unwrap();
+        let manifest: Manifest = toml::from_str(
+            "schema = 1\n[[skills]]\nsource = 'repo'\nselector = 'main'\npath = 'skills/review'\n",
+        )
+        .unwrap();
+        let checkout = temp.path().join("git").join(repository_key("repo"));
+        let commits = BTreeMap::from([("repo".to_owned(), "desired".to_owned())]);
+        let mut collections = vec![LockedCollection {
+            source: "repo".to_owned(),
+            root: None,
+            commit: "desired".to_owned(),
+            members: vec!["prototype".to_owned()],
+        }];
+        let expected = HashSet::from(["review".to_owned(), "prototype".to_owned()]);
+        assert_eq!(
+            changed_git_names(&manifest, &commits, &collections, temp.path()).unwrap(),
+            expected
+        );
+        assert!(!checkout.exists());
+        fs::create_dir_all(&checkout).unwrap();
+        git_output(Some(&checkout), &["init"]).unwrap();
+        git_output(
+            Some(&checkout),
+            &[
+                "-c",
+                "user.name=Test",
+                "-c",
+                "user.email=test@example.com",
+                "commit",
+                "--allow-empty",
+                "-m",
+                "initial",
+            ],
+        )
+        .unwrap();
+        let head = git_output(Some(&checkout), &["rev-parse", "HEAD"]).unwrap();
+        assert_eq!(
+            changed_git_names(&manifest, &commits, &collections, temp.path()).unwrap(),
+            expected
+        );
+        let commits = BTreeMap::from([("repo".to_owned(), head.clone())]);
+        collections[0].commit = head;
+        assert!(
+            changed_git_names(&manifest, &commits, &collections, temp.path())
+                .unwrap()
+                .is_empty()
+        );
+    }
 }

@@ -21,6 +21,7 @@ fn sync_replaces_an_owned_link_to_a_different_cached_path() {
     .unwrap();
     let command = || {
         let mut command = Command::cargo_bin("mansk").unwrap();
+        command.arg("--verbose");
         command
             .env("HOME", &home)
             .env("XDG_CACHE_HOME", &cache_home)
@@ -63,6 +64,7 @@ fn missing_target_directories_are_created_only_when_applying_links() {
     .unwrap();
     let command = || {
         let mut command = Command::cargo_bin("mansk").unwrap();
+        command.arg("--verbose");
         command
             .env("HOME", &home)
             .env("XDG_CACHE_HOME", &cache_home)
@@ -99,6 +101,7 @@ fn duplicate_names_on_overlapping_targets_fail_before_target_mutation() {
     .unwrap();
     let command = || {
         let mut command = Command::cargo_bin("mansk").unwrap();
+        command.arg("--verbose");
         command
             .env("HOME", &home)
             .env("XDG_CACHE_HOME", &cache_home)
@@ -142,6 +145,7 @@ fn unmanaged_collision_fails_sync_without_applying_any_planned_removals() {
     .unwrap();
     let command = || {
         let mut command = Command::cargo_bin("mansk").unwrap();
+        command.arg("--verbose");
         command
             .env("HOME", &home)
             .env("XDG_CACHE_HOME", &cache_home)
@@ -187,6 +191,7 @@ fn pruning_preserves_real_directories_and_links_outside_the_cache() {
     .unwrap();
     let command = || {
         let mut command = Command::cargo_bin("mansk").unwrap();
+        command.arg("--verbose");
         command
             .env("HOME", &home)
             .env("XDG_CACHE_HOME", &cache_home)
@@ -227,6 +232,7 @@ fn sync_prunes_the_final_removed_skill() {
     .unwrap();
     let command = || {
         let mut command = Command::cargo_bin("mansk").unwrap();
+        command.arg("--verbose");
         command
             .env("HOME", &home)
             .env("XDG_CACHE_HOME", &cache_home)
@@ -265,6 +271,7 @@ fn sync_prunes_only_the_removed_skills_owned_links_with_a_stale_lock() {
 
     let command = || {
         let mut command = Command::cargo_bin("mansk").unwrap();
+        command.arg("--verbose");
         command
             .env("HOME", &home)
             .env("XDG_CACHE_HOME", &cache_home)

@@ -33,6 +33,7 @@ fn fixture_repo(root: &Path, contents: &str) -> (String, String) {
 
 fn command(home: &Path, cache: &Path, manifest: &Path) -> Command {
     let mut command = Command::cargo_bin("mansk").unwrap();
+    command.arg("--verbose");
     command
         .env("HOME", home)
         .env("XDG_CACHE_HOME", cache)
@@ -453,4 +454,40 @@ fn missing_repository_path_fails_before_target_mutation() {
         .stderr(predicate::str::contains("does not exist"));
     assert!(!home.join(".claude").exists());
     assert!(!temp.path().join("skills.lock").exists());
+}
+
+#[test]
+fn default_output_reports_git_refresh_as_one_skill_update() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = temp.path().join("home");
+    let cache = temp.path().join("cache");
+    let (source, _) = fixture_repo(temp.path(), "one");
+    let manifest = temp.path().join("skills.toml");
+    fs::write(&manifest, format!("schema = 1\ndefault-targets = [\"claude\", \"pi\"]\n[targets]\nclaude = \".claude/skills\"\npi = \".pi/skills\"\n[[skills]]\nsource = {source:?}\nselector = \"main\"\npath = \"skills/review\"\n")).unwrap();
+    command(&home, &cache, &manifest)
+        .args(["update", "--yes"])
+        .assert()
+        .success();
+    advance_repo(&source, "two");
+    let output = Command::cargo_bin("mansk")
+        .unwrap()
+        .env("HOME", &home)
+        .env("XDG_CACHE_HOME", &cache)
+        .args([
+            "--manifest",
+            manifest.to_str().unwrap(),
+            "update",
+            "--dry-run",
+        ])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let text = String::from_utf8(output.stdout).unwrap();
+    assert!(text.contains("Update  review  claude, pi"), "{text}");
+    assert!(text.contains("1 skill changing · 0 unchanged"), "{text}");
+    assert!(!text.contains(&source) && !text.contains("Noop"), "{text}");
+    assert_eq!(
+        fs::read_to_string(home.join(".claude/skills/review/SKILL.md")).unwrap(),
+        "one"
+    );
 }

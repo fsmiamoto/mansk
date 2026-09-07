@@ -9,6 +9,7 @@ use clap::{Parser, Subcommand};
 mod apply;
 mod lock;
 mod manifest;
+mod output;
 mod plan;
 mod resolve;
 mod targets;
@@ -19,6 +20,10 @@ struct Cli {
     /// Path to the skills manifest
     #[arg(long, global = true, value_name = "PATH")]
     manifest: Option<PathBuf>,
+
+    /// Show repository revisions and filesystem operations
+    #[arg(long, global = true)]
+    verbose: bool,
 
     #[command(subcommand)]
     command: Command,
@@ -74,31 +79,28 @@ fn run() -> Result<(), String> {
     let has_no_work = manifest.skills.is_empty()
         && manifest.collections.is_empty()
         && !lock::path_for_manifest(&manifest_path).exists();
-    if has_no_work && manifest.targets.is_empty() {
-        return Ok(());
-    }
 
     let home = std::env::var_os("HOME").map(PathBuf::from);
     let cache_root = resolve::cache_home_from_env()?;
     let target_paths = targets::resolve(&manifest.targets, home.as_deref(), &cache_root)?;
     if has_no_work {
         let actions = make_plan(&[], &target_paths, &cache_root)?;
-        print_actions(&actions);
-        match cli.command {
-            Command::Sync { dry_run } => {
-                if !dry_run {
-                    apply::apply(&actions)?;
-                }
+        let summary = output::Summary::new(&actions, &target_paths, &Default::default());
+        let (command, dry_run, yes) = match cli.command {
+            Command::Sync { dry_run } => ("sync", dry_run, true),
+            Command::Update { dry_run, yes } => ("update", dry_run, yes),
+        };
+        summary.print_plan(command, dry_run, false);
+        if cli.verbose {
+            print_actions(&actions);
+        }
+        if !dry_run && summary.has_changes() {
+            if !yes && !confirm_update()? {
+                println!("Declined; no changes applied.");
+                return Ok(());
             }
-            Command::Update { dry_run, yes } => {
-                if !dry_run && !actions.is_empty() {
-                    if !yes && !confirm_update()? {
-                        println!("Declined");
-                        return Ok(());
-                    }
-                    apply::apply(&actions)?;
-                }
-            }
+            apply::apply(&actions)?;
+            summary.print_success(false);
         }
         return Ok(());
     }
@@ -107,6 +109,14 @@ fn run() -> Result<(), String> {
         Command::Sync { dry_run } => {
             let lockfile = lock::read(&manifest_path)?;
             lockfile.covers(&manifest)?;
+            let mut refreshed =
+                resolve::changed_local_names(&manifest, &manifest_path, &cache_root)?;
+            refreshed.extend(resolve::changed_git_names(
+                &manifest,
+                &lockfile.git,
+                &lockfile.collections,
+                &cache_root,
+            )?);
             let mut resolved =
                 resolve::local_skills(&manifest, &manifest_path, &cache_root, !dry_run)?;
             resolved.extend(resolve::git_skills(
@@ -117,9 +127,16 @@ fn run() -> Result<(), String> {
                 !dry_run,
             )?);
             let actions = make_plan(&resolved, &target_paths, &cache_root)?;
-            print_actions(&actions);
+            let summary = output::Summary::new(&actions, &target_paths, &refreshed);
+            summary.print_plan("sync", dry_run, false);
+            if cli.verbose {
+                print_actions(&actions);
+            }
             if !dry_run {
                 apply::apply(&actions)?;
+                if summary.has_changes() {
+                    summary.print_success(false);
+                }
             }
         }
         Command::Update { dry_run, yes } => {
@@ -130,8 +147,7 @@ fn run() -> Result<(), String> {
                 None
             };
             let collections = resolve::discover_collections(&manifest, &commits, &cache_root)?;
-            print_commit_changes(old_lock.as_ref(), &commits);
-            print_member_changes(old_lock.as_ref(), &collections);
+
             let explicit_commits = commits
                 .iter()
                 .filter(|(source, _)| {
@@ -144,6 +160,17 @@ fn run() -> Result<(), String> {
                 .collect();
             let new_lock =
                 lock::Lockfile::for_manifest(&manifest, explicit_commits, collections.clone());
+            let lock_changed = old_lock.as_ref().is_none_or(|old| {
+                serde_json::to_value(old).ok() != serde_json::to_value(&new_lock).ok()
+            });
+            let mut refreshed =
+                resolve::changed_local_names(&manifest, &manifest_path, &cache_root)?;
+            refreshed.extend(resolve::changed_git_names(
+                &manifest,
+                &commits,
+                &collections,
+                &cache_root,
+            )?);
             let mut resolved =
                 resolve::local_skills(&manifest, &manifest_path, &cache_root, false)?;
             resolved.extend(resolve::git_skills(
@@ -154,18 +181,25 @@ fn run() -> Result<(), String> {
                 false,
             )?);
             let actions = make_plan(&resolved, &target_paths, &cache_root)?;
-            print_actions(&actions);
-            if dry_run {
+            let summary = output::Summary::new(&actions, &target_paths, &refreshed);
+            summary.print_plan("update", dry_run, lock_changed);
+            if cli.verbose {
+                print_commit_changes(old_lock.as_ref(), &commits);
+                print_member_changes(old_lock.as_ref(), &collections);
+                print_actions(&actions);
+            }
+            if dry_run || (!summary.has_changes() && !lock_changed) {
                 return Ok(());
             }
             if !yes && !confirm_update()? {
-                println!("Declined");
+                println!("Declined; no changes applied.");
                 return Ok(());
             }
             resolve::local_skills(&manifest, &manifest_path, &cache_root, true)?;
             resolve::git_skills(&manifest, &commits, &collections, &cache_root, true)?;
             lock::write(&manifest_path, &new_lock)?;
             apply::apply(&actions)?;
+            summary.print_success(lock_changed);
         }
     }
     Ok(())
@@ -297,7 +331,14 @@ fn abbreviated_commit(commit: &str) -> &str {
 }
 
 fn confirm_update() -> Result<bool, String> {
-    eprint!("Apply update? [y/N] ");
+    use io::Write;
+    io::stdout()
+        .flush()
+        .map_err(|error| format!("failed to flush output: {error}"))?;
+    eprint!("Apply changes? [y/N] ");
+    io::stderr()
+        .flush()
+        .map_err(|error| format!("failed to flush prompt: {error}"))?;
     let mut answer = String::new();
     io::stdin()
         .read_line(&mut answer)

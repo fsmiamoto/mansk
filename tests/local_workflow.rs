@@ -23,6 +23,7 @@ fn local_update_sync_noop_and_prune() {
     .unwrap();
     let command = || {
         let mut command = Command::cargo_bin("mansk").unwrap();
+        command.arg("--verbose");
         command
             .env("HOME", &home)
             .env("XDG_CONFIG_HOME", &config_home)
@@ -83,6 +84,7 @@ fn update_installs_a_local_skill_and_records_its_source() {
 
     Command::cargo_bin("mansk")
         .unwrap()
+        .arg("--verbose")
         .env("HOME", &home)
         .env("XDG_CACHE_HOME", &cache_home)
         .args(["--manifest", manifest.to_str().unwrap(), "update", "--yes"])
@@ -128,6 +130,7 @@ fn duplicate_effective_targets_install_each_skill_once() {
 
     Command::cargo_bin("mansk")
         .unwrap()
+        .arg("--verbose")
         .env("HOME", &home)
         .env("XDG_CACHE_HOME", &cache_home)
         .args(["--manifest", manifest.to_str().unwrap(), "update", "--yes"])
@@ -155,6 +158,7 @@ fn sync_refreshes_local_content_and_reports_an_existing_link_as_noop() {
 
     Command::cargo_bin("mansk")
         .unwrap()
+        .arg("--verbose")
         .env("HOME", &home)
         .env("XDG_CACHE_HOME", &cache_home)
         .args(["--manifest", manifest.to_str().unwrap(), "update", "--yes"])
@@ -164,6 +168,7 @@ fn sync_refreshes_local_content_and_reports_an_existing_link_as_noop() {
     fs::write(skill.join("SKILL.md"), "version two").unwrap();
     Command::cargo_bin("mansk")
         .unwrap()
+        .arg("--verbose")
         .env("HOME", &home)
         .env("XDG_CACHE_HOME", &cache_home)
         .args(["--manifest", manifest.to_str().unwrap(), "sync"])
@@ -176,6 +181,7 @@ fn sync_refreshes_local_content_and_reports_an_existing_link_as_noop() {
 
     Command::cargo_bin("mansk")
         .unwrap()
+        .arg("--verbose")
         .env("HOME", &home)
         .env("XDG_CACHE_HOME", &cache_home)
         .args(["--manifest", manifest.to_str().unwrap(), "sync"])
@@ -215,6 +221,7 @@ targets = ["agents"]
 
     Command::cargo_bin("mansk")
         .unwrap()
+        .arg("--verbose")
         .env("HOME", &home)
         .env("XDG_CACHE_HOME", &cache_home)
         .args(["--manifest", manifest.to_str().unwrap(), "update", "--yes"])
@@ -244,6 +251,7 @@ fn sync_requires_a_lock_covering_every_local_source_before_creating_targets() {
 
     Command::cargo_bin("mansk")
         .unwrap()
+        .arg("--verbose")
         .env("HOME", &home)
         .env("XDG_CACHE_HOME", &cache_home)
         .args(["--manifest", manifest.to_str().unwrap(), "sync"])
@@ -259,6 +267,7 @@ fn sync_requires_a_lock_covering_every_local_source_before_creating_targets() {
     .unwrap();
     Command::cargo_bin("mansk")
         .unwrap()
+        .arg("--verbose")
         .env("HOME", &home)
         .env("XDG_CACHE_HOME", &cache_home)
         .args(["--manifest", manifest.to_str().unwrap(), "sync"])
@@ -285,6 +294,7 @@ fn missing_skill_document_fails_before_any_target_directory_is_mutated() {
 
     Command::cargo_bin("mansk")
         .unwrap()
+        .arg("--verbose")
         .env("HOME", &home)
         .env("XDG_CACHE_HOME", &cache_home)
         .args(["--manifest", manifest.to_str().unwrap(), "update", "--yes"])
@@ -315,6 +325,7 @@ fn declining_an_update_does_not_refresh_content_visible_through_installed_links(
 
     let command = || {
         let mut command = Command::cargo_bin("mansk").unwrap();
+        command.arg("--verbose");
         command
             .env("HOME", &home)
             .env("XDG_CACHE_HOME", &cache_home)
@@ -367,6 +378,7 @@ fn cache_staging_does_not_clobber_a_skill_with_the_old_temporary_name() {
 
     Command::cargo_bin("mansk")
         .unwrap()
+        .arg("--verbose")
         .env("HOME", &home)
         .env("XDG_CACHE_HOME", &cache_home)
         .args(["--manifest", manifest.to_str().unwrap(), "update", "--yes"])
@@ -401,6 +413,7 @@ fn dry_runs_print_plans_without_writing_lock_or_target_entries() {
     .unwrap();
     let command = || {
         let mut command = Command::cargo_bin("mansk").unwrap();
+        command.arg("--verbose");
         command
             .env("HOME", &home)
             .env("XDG_CACHE_HOME", &cache_home)

@@ -38,6 +38,7 @@ fn commit(repo: &Path, message: &str) -> String {
 
 fn command(home: &Path, cache: &Path, manifest: &Path) -> Command {
     let mut command = Command::cargo_bin("mansk").unwrap();
+    command.arg("--verbose");
     command
         .env("HOME", home)
         .env("XDG_CACHE_HOME", cache)
